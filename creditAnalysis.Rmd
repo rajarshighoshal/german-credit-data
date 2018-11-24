@@ -28,24 +28,15 @@ library(e1071)
 ## Loading data into environment
 creditData <- read.table("german.data")
 creditDataNum <- read.table("german.data-numeric")
-## check data
-head(creditData)
-str(creditData)
-head(creditDataNum)
-str(creditDataNum)
 ## create proper column names
 colnames(creditData) <- c('existingcheckingstatus', 'duration', 'credithistory', 'purpose', 'creditamount', 
          'savings', 'employmentlength', 'installmentrate', 'marriagesex', 'otherdebtors', 
          'presentresidencelength', 'property', 'age', 'otherinstallmentplans', 'housing', 
          'existingcredits', 'job', 'peopleliableno', 'telephone', 'foreignworker', 'classification')
-## check
-head(creditData)
-str(creditData)
 ## convert existingcredits to 0,1 except 1,2
 creditData <- creditData %>% mutate(existingcredits = ifelse(existingcredits == 1, 0, 1))
 ## convert classification top 0,1 except 1,2
 creditData <- creditData %>% mutate(classification = ifelse(classification == 1, 0, 1))
-str(creditData)
 ## summarise the data
 summary(creditData)
 ## existingcheckingstatus
@@ -138,10 +129,9 @@ levels(creditData$telephone) <- c(0,1)
 creditData$telephone <- as.numeric(levels(creditData$telephone))[creditData$telephone]
 levels(creditData$foreignworker) <- c(0,1)
 creditData$foreignworker <- as.numeric(levels(creditData$foreignworker))[creditData$foreignworker]
-str(creditData)
 ## convert other factores with more than 2 levels into dummies
 creditDataNumeric <- as.data.frame(model.matrix(~ ., data = creditData, contrasts.arg = lapply(creditData[,sapply(creditData, is.factor)], contrasts, contrasts=FALSE)))[,-1]
-creditDataNumeric
+
 
 
 ### model creation
@@ -325,7 +315,7 @@ final_model <- glm_final
 creditDataNumeric$prediction <- predict(final_model, type = "response", newdata = creditDataNumeric[, -60])
 creditDataNumeric$prediction <- factor(ifelse(creditDataNumeric$prediction >= 0.50, "Default", "Not Default"))
 creditData$prediction <- creditDataNumeric$prediction
-
+creditData
 
 ```
 
