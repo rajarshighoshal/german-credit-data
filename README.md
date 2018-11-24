@@ -196,9 +196,9 @@ For general linear model as variables are not in much diverse range except 2/3 v
 #### Cost matrix
 As per the instruction in the given dataset I am using the following cost matrix to estimate the cost of prediction.
       1        2
-----------------------------
+
   1   0        1
------------------------
+
   2   5        0
 
 (1 = Good,  2 = Bad)
