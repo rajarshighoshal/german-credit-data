@@ -160,16 +160,7 @@ Attribute 20: (qualitative)
 
 8.  Cost Matrix
 
-This dataset requires use of a cost matrix (see below)
-
-
-      1        2
-----------------------------
-  1   0        1
------------------------
-  2   5        0
-
-(1 = Good,  2 = Bad)
+This dataset requires use of a cost matrix with 
 
 the rows represent the actual classification and the columns
 the predicted classification.
