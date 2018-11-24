@@ -27,16 +27,27 @@ library(ROCR)
 library(e1071)
 ## Loading data into environment
 creditData <- read.table("german.data")
-
+creditDataNum <- read.table("german.data-numeric")
+## check data
+head(creditData)
+str(creditData)
+head(creditDataNum)
+str(creditDataNum)
 ## create proper column names
 colnames(creditData) <- c('existingcheckingstatus', 'duration', 'credithistory', 'purpose', 'creditamount', 
          'savings', 'employmentlength', 'installmentrate', 'marriagesex', 'otherdebtors', 
          'presentresidencelength', 'property', 'age', 'otherinstallmentplans', 'housing', 
          'existingcredits', 'job', 'peopleliableno', 'telephone', 'foreignworker', 'classification')
+## check
+head(creditData)
+str(creditData)
 ## convert existingcredits to 0,1 except 1,2
 creditData <- creditData %>% mutate(existingcredits = ifelse(existingcredits == 1, 0, 1))
 ## convert classification top 0,1 except 1,2
 creditData <- creditData %>% mutate(classification = ifelse(classification == 1, 0, 1))
+str(creditData)
+## summarise the data
+summary(creditData)
 ## existingcheckingstatus
 ggplot(creditData, aes(x = creditData$existingcheckingstatus)) + geom_bar(fill = 'coral') + labs(title = 'Status of existing checking account', x = 'existingcheckingstatus', y = 'Count')
 ## duration
@@ -127,8 +138,12 @@ levels(creditData$telephone) <- c(0,1)
 creditData$telephone <- as.numeric(levels(creditData$telephone))[creditData$telephone]
 levels(creditData$foreignworker) <- c(0,1)
 creditData$foreignworker <- as.numeric(levels(creditData$foreignworker))[creditData$foreignworker]
+str(creditData)
 ## convert other factores with more than 2 levels into dummies
 creditDataNumeric <- as.data.frame(model.matrix(~ ., data = creditData, contrasts.arg = lapply(creditData[,sapply(creditData, is.factor)], contrasts, contrasts=FALSE)))[,-1]
+creditDataNumeric
+
+
 ### model creation
 ## test train split
 set.seed(100)
@@ -306,60 +321,11 @@ cost_glm
 
 
 
-## rf model 
-creditDataNumeric$classification <- as.factor(creditDataNumeric$classification)
-## test trian split
-set.seed(100)
-indices = sample(1:nrow(creditDataNumeric), 0.7*nrow(creditDataNumeric))
-train = creditDataNumeric[indices,]
-test = creditDataNumeric[-indices,]
-
-## rf model 1
-model_rf1 <- randomForest(classification~.,data = train)
-prediction <- predict(model_rf1, newdata = test[, -60], type = "response")
-## accuracy
-table(test$classification, prediction)
-## rf model 2
-model_rf2 <- randomForest(classification~., data = train, cp = 0.05, parms = list(loss = PenaltyMatrix))
-prediction2 <- predict(model_rf2, newdata = test[,-60], type = "response")
-table(test$classification, prediction2)
-plot(model_rf2)
-## choose mtry
-mtry <- tuneRF(train[,-60],train$classification,ntreeTry = 500, stepFactor = 1.5, improve = 0.001, trace = TRUE, plot = TRUE, doBest = TRUE)
-## mtry = 4 as best mtry
-## rf model 3
-model_rf3 <- randomForest(classification~., data = train, cp = 0.05, parms = list(loss = PenaltyMatrix), mtry = 4, importance = TRUE)
-print(model_rf3)
-## variable importance
-importance(model_rf3)
-varImpPlot(model_rf3)
-## ROC & auc
-predrf <- predict(model_rf3, newdata = test[,-60], type = "prob")
-pred <- prediction(predrf[,2], test$classification)
-# roc
-prediction <- performance(pred, "tpr", "fpr")
-plot(prediction,main="ROC Curve for Random Forest",col=2,lwd=2)
-# auc
-auc <- as.numeric(performance(pred, "auc")@y.values)
-auc
-
-##
-test_pred_default_rf = predict(model_rf3, type = "response", 
-                    newdata = test[,-60])
-test_actual_default_rf <- test$classification
-## confusion matrix
-test_conf_rf <- confusionMatrix(test_pred_default_rf, test_actual_default_rf, positive = "1")
-
-
-## calculate cost
-cost_rf <- sum(test_conf_rf$table * as.vector(penaltyMatrix))
-cost_rf
-
-#### glm one is better model with lower cost
 final_model <- glm_final
 creditDataNumeric$prediction <- predict(final_model, type = "response", newdata = creditDataNumeric[, -60])
 creditDataNumeric$prediction <- factor(ifelse(creditDataNumeric$prediction >= 0.50, "Default", "Not Default"))
 creditData$prediction <- creditDataNumeric$prediction
+
 
 ```
 
