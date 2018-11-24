@@ -1,0 +1,308 @@
+## Importing packages
+library(tidyverse) 
+library(MASS)
+library(car)
+library(caret)
+library(randomForest)
+library(ROCR)
+library(e1071)
+## Loading data into environment
+creditData <- read.table("german.data")
+creditDataNum <- read.table("german.data-numeric")
+## check data
+head(creditData)
+str(creditData)
+head(creditDataNum)
+str(creditDataNum)
+## create proper column names
+colnames(creditData) <- c('existingcheckingstatus', 'duration', 'credithistory', 'purpose', 'creditamount', 
+         'savings', 'employmentlength', 'installmentrate', 'marriagesex', 'otherdebtors', 
+         'presentresidencelength', 'property', 'age', 'otherinstallmentplans', 'housing', 
+         'existingcredits', 'job', 'peopleliableno', 'telephone', 'foreignworker', 'classification')
+## check
+head(creditData)
+str(creditData)
+## convert existingcredits to 0,1 except 1,2
+creditData <- creditData %>% mutate(existingcredits = ifelse(existingcredits == 1, 0, 1))
+## convert classification top 0,1 except 1,2
+creditData <- creditData %>% mutate(classification = ifelse(classification == 1, 0, 1))
+str(creditData)
+## summarise the data
+summary(creditData)
+## existingcheckingstatus
+ggplot(creditData, aes(x = creditData$existingcheckingstatus)) + geom_bar(fill = 'coral') + labs(title = 'Status of existing checking account', x = 'existingcheckingstatus', y = 'Count')
+## duration
+ggplot(creditData, aes(x = creditData$duration)) + geom_histogram(fill = 'lightblue', binwidth = 3) + labs(title = 'Duration in months', x = 'duration', y = 'Count')
+boxplot(creditData$duration)
+## impute the outliers
+quantile(creditData$duration,seq(0,1,0.01))
+creditData$duration[which(creditData$duration > 48)] <- 48
+## credithistory
+ggplot(creditData, aes(x = creditData$credithistory)) + geom_bar(fill = 'coral') + labs(title = 'Credit history', x = 'credithistory', y = 'Count')
+## purpose
+ggplot(creditData, aes(x = creditData$purpose)) + geom_bar(fill = 'coral') + labs(title = 'Purpose of loan', x = 'purpose', y = 'Count')
+## creditamount
+ggplot(creditData, aes(x = creditData$creditamount)) + geom_histogram(fill = 'lightblue', binwidth = 500) + labs(title = 'Credit amount', x = 'creditamount', y = 'Count')
+## boxplot
+boxplot(creditData$creditamount)
+## outlier treatment
+quantile(creditData$creditamount,seq(0,1,0.01))
+creditData$creditamount[which(creditData$creditamount > 9162.70000000001)] <- 9162.70000000001
+## savings 
+ggplot(creditData, aes(x = creditData$savings)) + geom_bar(fill = 'coral') + labs(title = 'Savings account/bonds', x = 'savings', y = 'Count')
+## employmentlength
+ggplot(creditData, aes(x = creditData$employmentlength)) + geom_bar(fill = 'coral') + labs(title = 'Present employment since', x = 'employmentlength', y = 'Count')
+## installmentrate
+ggplot(creditData, aes(x = creditData$installmentrate)) + geom_histogram(fill = 'lightblue', binwidth = 1) + labs(title = 'Installment rate in percentage of disposable income', x = 'installmentrate', y = 'Count')
+## boxplot
+boxplot(creditData$installmentrate)
+## no outliers
+## marriagesex
+ggplot(creditData, aes(x = creditData$marriagesex)) + geom_bar(fill = 'coral') + labs(title = 'Personal status and sex', x = 'marriagesex', y = 'Count')
+## otherdebtors
+ggplot(creditData, aes(x = creditData$otherdebtors)) + geom_bar(fill = 'coral') + labs(title = 'Other debtors / guarantors', x = 'otherdebtors', y = 'Count')
+## almost all the people have not any othe debtors/ guarantorsw
+## presentresidencelength
+ggplot(creditData, aes(x = creditData$presentresidencelength)) + geom_histogram(fill = 'lightblue', binwidth = 1) + labs(title = 'Present residence since', x = 'presentresidencelength', y = 'Count')
+## boxplot
+boxplot(creditData$presentresidencelength)
+## no outlier
+## property
+ggplot(creditData, aes(x = creditData$property)) + geom_bar(fill = 'coral') + labs(title = 'Property', x = 'property', y = 'Count')
+## age 
+ggplot(creditData, aes(x = creditData$age)) + geom_histogram(fill = 'lightblue', binwidth = 10) + labs(title = 'Age in years', x = 'age', y = 'Count')
+## boxplot
+boxplot(creditData$age)
+## outlier treatment
+quantile(creditData$age,seq(0,1,0.01))
+creditData$age[which(creditData$age > 67)] <- 67
+## otherinstallmentplans
+ggplot(creditData, aes(x = creditData$otherinstallmentplans)) + geom_bar(fill = 'coral') + labs(title = 'Other installment plans', x = 'otherinstallmentplans', y = 'Count')
+## none outnumbers all the others
+## housing 
+ggplot(creditData, aes(x = creditData$housing)) + geom_bar(fill = 'coral') + labs(title = 'Housing', x = 'housing', y = 'Count')
+## own outnumbers all of the others
+## existingcredits
+ggplot(creditData, aes(x = creditData$existingcredits)) + geom_histogram(fill = 'lightblue', binwidth = .5) + labs(title = 'Number of existing credits at this bank', x = 'existingcredits', y = 'Count')
+## boxplot
+boxplot(creditData$existingcredits)
+## no outliers
+## existing credits as factor
+ggplot(creditData, aes(x = as.factor(creditData$existingcredits))) + geom_bar(fill = 'coral') + labs(title = 'Number of existing credits at this bank', x = 'existingcredits', y = 'Count')
+## job
+ggplot(creditData, aes(x = creditData$job)) + geom_bar(fill = 'coral') + labs(title = 'Job', x = 'job', y = 'Count')
+## unemployed/ unskilled  - non-resident is vewry low in count
+## peopleliableno 
+ggplot(creditData, aes(x = creditData$peopleliableno)) + geom_histogram(fill = 'lightblue', binwidth = 1) + labs(title = 'Number of people being liable to provide maintenance for', x = 'no.of peopleliable', y = 'Count')
+## boxplot
+boxplot(creditData$peopleliableno)
+## outlier treatment
+quantile(creditData$peopleliableno,seq(0,1,0.01))
+# no need
+## telephone
+ggplot(creditData, aes(x = creditData$telephone)) + geom_bar(fill = 'coral') + labs(title = 'Telephone present', x = 'telephone', y = 'Count')
+## foreignworker
+ggplot(creditData, aes(x = creditData$foreignworker)) + geom_bar(fill = 'coral') + labs(title = 'Foreign worker', x = 'foreignworker', y = 'Count')
+## yes outnumbers no with a large margin
+## check status of good and bad
+ggplot(creditData, aes(x = as.factor(creditData$classification))) + geom_bar(fill = 'coral') + labs(title = 'Good vs Bad', x = 'classification', y = 'Count')
+## age vs credit amount for various purposes
+ggplot(creditData, aes(x = age, y = creditamount)) + geom_point(aes(color=as.factor(classification))) + facet_wrap(~purpose)
+## age vs employment length 
+ggplot(creditData, aes(y = age, x = employmentlength, fill = as.factor(classification))) + stat_summary(fun.y="mean", geom="bar", position = 'dodge') 
+## not much relation between age and employment length
+## employment length vs savings
+ggplot(creditData, aes(x = employmentlength)) + geom_bar(aes(fill = savings), position = 'dodge') + facet_wrap(~classification)
+## all follow almost similar trends
+## convert telephone and foreignworker into 0 and 1, as they are factors with 2 levels
+levels(creditData$telephone) <- c(0,1)
+creditData$telephone <- as.numeric(levels(creditData$telephone))[creditData$telephone]
+levels(creditData$foreignworker) <- c(0,1)
+creditData$foreignworker <- as.numeric(levels(creditData$foreignworker))[creditData$foreignworker]
+str(creditData)
+## convert other factores with more than 2 levels into dummies
+creditDataNumeric <- as.data.frame(model.matrix(~ ., data = creditData, contrasts.arg = lapply(creditData[,sapply(creditData, is.factor)], contrasts, contrasts=FALSE)))[,-1]
+creditDataNumeric
+
+
+### model creation
+## test train split
+set.seed(100)
+indices = sample(1:nrow(creditDataNumeric), 0.7*nrow(creditDataNumeric))
+train = creditDataNumeric[indices,]
+test = creditDataNumeric[-indices,]
+## penalty matrix
+penaltyMatrix <- matrix(c(0,1,5,0), byrow = T, nrow = 2)
+
+
+
+## glm model
+model1 <- glm(classification~., data = creditDataNumeric)
+summary(model1)
+## uset stepAIC to reduce colinearity
+step <- stepAIC(model1)
+step
+
+model2 <- glm(formula = classification ~ existingcheckingstatusA11 + existingcheckingstatusA12 + 
+                duration + credithistoryA30 + credithistoryA31 + credithistoryA32 + 
+                credithistoryA33 + purposeA40 + purposeA41 + purposeA46 + 
+                creditamount + savingsA61 + savingsA62 + employmentlengthA74 + 
+                installmentrate + marriagesexA93 + otherdebtorsA101 + otherdebtorsA102 + 
+                propertyA121 + otherinstallmentplansA141 + housingA151 + 
+                telephone + foreignworker, data = creditDataNumeric)
+summary(model2)
+vif(model2)
+## remove creditamount for having highest vif
+model3 <- glm(formula = classification ~ existingcheckingstatusA11 + existingcheckingstatusA12 + 
+                duration + credithistoryA30 + credithistoryA31 + credithistoryA32 + 
+                credithistoryA33 + purposeA40 + purposeA41 + purposeA46 + 
+                savingsA61 + savingsA62 + employmentlengthA74 + 
+                installmentrate + marriagesexA93 + otherdebtorsA101 + otherdebtorsA102 + 
+                propertyA121 + otherinstallmentplansA141 + housingA151 + 
+                telephone + foreignworker, data = creditDataNumeric)
+summary(model3)
+vif(model3)
+## all have low vif, so we can don't need to check vif anymore
+## remove telephone as it has highest p-value
+model4 <- glm(formula = classification ~ existingcheckingstatusA11 + existingcheckingstatusA12 + 
+                duration + credithistoryA30 + credithistoryA31 + credithistoryA32 + 
+                credithistoryA33 + purposeA40 + purposeA41 + purposeA46 + 
+                savingsA61 + savingsA62 + employmentlengthA74 + 
+                installmentrate + marriagesexA93 + otherdebtorsA101 + otherdebtorsA102 + 
+                propertyA121 + otherinstallmentplansA141 + housingA151 + 
+                foreignworker, data = creditDataNumeric)
+summary(model4)
+## remove propertyA121 as it has highest p-value
+model5 <- glm(formula = classification ~ existingcheckingstatusA11 + existingcheckingstatusA12 + 
+                duration + credithistoryA30 + credithistoryA31 + credithistoryA32 + 
+                credithistoryA33 + purposeA40 + purposeA41 + purposeA46 + 
+                savingsA61 + savingsA62 + employmentlengthA74 + 
+                installmentrate + marriagesexA93 + otherdebtorsA101 + otherdebtorsA102 + 
+                otherinstallmentplansA141 + housingA151 + 
+                foreignworker, data = creditDataNumeric)
+summary(model5)
+## remove credithistoryA33 as it has highest p-value
+model6 <- glm(formula = classification ~ existingcheckingstatusA11 + existingcheckingstatusA12 + 
+                duration + credithistoryA30 + credithistoryA31 + credithistoryA32 + 
+                purposeA40 + purposeA41 + purposeA46 + 
+                savingsA61 + savingsA62 + employmentlengthA74 + 
+                installmentrate + marriagesexA93 + otherdebtorsA101 + otherdebtorsA102 + 
+                otherinstallmentplansA141 + housingA151 + 
+                foreignworker, data = creditDataNumeric)
+summary(model6)
+## remove savingsA62
+model7 <- glm(formula = classification ~ existingcheckingstatusA11 + existingcheckingstatusA12 + 
+                duration + credithistoryA30 + credithistoryA31 + credithistoryA32 + 
+                purposeA40 + purposeA41 + purposeA46 + 
+                savingsA61 + employmentlengthA74 + 
+                installmentrate + marriagesexA93 + otherdebtorsA101 + otherdebtorsA102 + 
+                otherinstallmentplansA141 + housingA151 + 
+                foreignworker, data = creditDataNumeric)
+summary(model7)
+## remove otherinstallmentplansA141 
+model8 <- glm(formula = classification ~ existingcheckingstatusA11 + existingcheckingstatusA12 + 
+                duration + credithistoryA30 + credithistoryA31 + credithistoryA32 + 
+                purposeA40 + purposeA41 + purposeA46 + 
+                savingsA61 + employmentlengthA74 + 
+                installmentrate + marriagesexA93 + otherdebtorsA101 + otherdebtorsA102 + 
+                housingA151 + 
+                foreignworker, data = creditDataNumeric)
+summary(model8)
+## remove foreignworker  
+model9 <- glm(formula = classification ~ existingcheckingstatusA11 + existingcheckingstatusA12 + 
+                duration + credithistoryA30 + credithistoryA31 + credithistoryA32 + 
+                purposeA40 + purposeA41 + purposeA46 + 
+                savingsA61 + employmentlengthA74 + 
+                installmentrate + marriagesexA93 + otherdebtorsA101 + otherdebtorsA102 + 
+                housingA151, data = creditDataNumeric)
+summary(model9)
+## remove housingA151  
+model10 <- glm(formula = classification ~ existingcheckingstatusA11 + existingcheckingstatusA12 + 
+                duration + credithistoryA30 + credithistoryA31 + credithistoryA32 + 
+                purposeA40 + purposeA41 + purposeA46 + 
+                savingsA61 + employmentlengthA74 + 
+                installmentrate + marriagesexA93 + otherdebtorsA101 + otherdebtorsA102, data = creditDataNumeric)
+summary(model10)
+## remove purposeA41
+model11 <- glm(formula = classification ~ existingcheckingstatusA11 + existingcheckingstatusA12 + 
+                 duration + credithistoryA30 + credithistoryA31 + credithistoryA32 + 
+                 purposeA40 + purposeA46 + 
+                 savingsA61 + employmentlengthA74 + 
+                 installmentrate + marriagesexA93 + otherdebtorsA101 + otherdebtorsA102, data = creditDataNumeric)
+summary(model11)
+## remove employmentlengthA74
+model12 <- glm(formula = classification ~ existingcheckingstatusA11 + existingcheckingstatusA12 + 
+                 duration + credithistoryA30 + credithistoryA31 + credithistoryA32 + 
+                 purposeA40 + purposeA46 + 
+                 savingsA61 + 
+                 installmentrate + marriagesexA93 + otherdebtorsA101 + otherdebtorsA102, data = creditDataNumeric)
+summary(model12)
+## remove installmentrate 
+model13 <- glm(formula = classification ~ existingcheckingstatusA11 + existingcheckingstatusA12 + 
+                 duration + credithistoryA30 + credithistoryA31 + credithistoryA32 + 
+                 purposeA40 + purposeA46 + 
+                 savingsA61 + 
+                marriagesexA93 + otherdebtorsA101 + otherdebtorsA102, data = creditDataNumeric)
+summary(model13)
+## credithistoryA32
+model14 <- glm(formula = classification ~ existingcheckingstatusA11 + existingcheckingstatusA12 + 
+                 duration + credithistoryA30 + credithistoryA31 +
+                 purposeA40 + purposeA46 + 
+                 savingsA61 + 
+                 marriagesexA93 + otherdebtorsA101 + otherdebtorsA102, data = creditDataNumeric)
+summary(model14)
+## remove purposeA46
+model15 <- glm(formula = classification ~ existingcheckingstatusA11 + existingcheckingstatusA12 + 
+                 duration + credithistoryA30 + credithistoryA31 +
+                 purposeA40 +  
+                 savingsA61 + 
+                 marriagesexA93 + otherdebtorsA101 + otherdebtorsA102, data = creditDataNumeric)
+summary(model15)
+## marriagesexA93 
+model16 <- glm(formula = classification ~ existingcheckingstatusA11 + existingcheckingstatusA12 + 
+                 duration + credithistoryA30 + credithistoryA31 +
+                 purposeA40 +  
+                 savingsA61 + 
+                 otherdebtorsA101 + otherdebtorsA102, data = creditDataNumeric)
+summary(model16)
+## otherdebtorsA102
+model17 <- glm(formula = classification ~ existingcheckingstatusA11 + existingcheckingstatusA12 + 
+                 duration + credithistoryA30 + credithistoryA31 +
+                 purposeA40 +  
+                 savingsA61 + 
+                 otherdebtorsA101, data = creditDataNumeric)
+summary(model17)
+## otherdebtorsA101
+model18 <- glm(formula = classification ~ existingcheckingstatusA11 + existingcheckingstatusA12 + 
+                 duration + credithistoryA30 + credithistoryA31 +
+                 purposeA40 +  
+                 savingsA61, data = creditDataNumeric)
+summary(model18)
+
+#### at this point all the variables are quite significant so chhosing this as final glm model
+glm_final <- model18
+## predict using glm_final
+test_pred = predict(glm_final, type = "response", 
+                    newdata = test[,-60])
+test$pred <- test_pred
+summary(test$pred)
+## use a cutoff of 0.5 
+test_pred_default <- factor(ifelse(test_pred >= 0.50, "Yes", "No"))
+test_actual_default <- factor(ifelse(test$classification==1,"Yes","No"))
+## create table
+table(test_actual_default,test_pred_default)
+
+## confusion matrix
+test_conf <- confusionMatrix(test_pred_default, test_actual_default, positive = "Yes")
+test_conf
+
+## calculate cost
+cost_glm <- sum(test_conf$table * as.vector(penaltyMatrix))
+cost_glm
+
+
+
+final_model <- glm_final
+creditDataNumeric$prediction <- predict(final_model, type = "response", newdata = creditDataNumeric[, -60])
+creditDataNumeric$prediction <- factor(ifelse(creditDataNumeric$prediction >= 0.50, "Default", "Not Default"))
+creditData$prediction <- creditDataNumeric$prediction
